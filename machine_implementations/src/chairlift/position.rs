@@ -49,6 +49,7 @@ mod tests {
             mountain_to_valley_pulses: 58_000,
             mountain_station_pulses: 2_900,
             valley_station_pulses: 2_900,
+            pulses_per_meter: 29,
         }
     }
 

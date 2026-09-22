@@ -66,6 +66,9 @@ import { DryerMaterialPage } from "@/machines/dryer/DryerMaterialPage";
 import { WagoSerialPage } from "@/machines/wago_serial/WagoSerialPage";
 import { WagoSerialControlPage } from "@/machines/wago_serial/WagoSerialControlPage";
 
+import { ChairliftPage } from "@/machines/chairlift/ChairliftPage";
+import { ChairliftControlPage } from "@/machines/chairlift/ChairliftControlPage";
+
 import { Mock1ControlPage } from "@/machines/minimal_machines/mock/mock1/Mock1ControlPage";
 import { Mock1GraphPage } from "@/machines/minimal_machines/mock/mock1/Mock1Graph";
 import { Mock1ManualPage } from "@/machines/minimal_machines/mock/mock1/Mock1Manual";
@@ -629,6 +632,18 @@ export const wagoSerialControlRoute = createRoute({
   component: () => <WagoSerialControlPage />,
 });
 
+export const chairlift1SerialRoute = createRoute({
+  getParentRoute: () => machinesRoute,
+  path: "chairlift1/$serial",
+  component: () => <ChairliftPage />,
+});
+
+export const chairlift1ControlRoute = createRoute({
+  getParentRoute: () => chairlift1SerialRoute,
+  path: "control",
+  component: () => <ChairliftControlPage />,
+});
+
 export const wago750_501TestMachineSerialRoute = createRoute({
   getParentRoute: () => machinesRoute,
   path: "wago750501testmachine/$serial",
@@ -770,6 +785,8 @@ export const rootTree = RootRoute.addChildren([
       wagoAiTestMachineSerialRoute.addChildren([wagoAiTestMachineControlRoute]),
 
       wagoSerialSerialRoute.addChildren([wagoSerialControlRoute]),
+
+      chairlift1SerialRoute.addChildren([chairlift1ControlRoute]),
 
       digitalInputTestMachineSerialRoute.addChildren([
         digitalInputTestMachineControlRoute,

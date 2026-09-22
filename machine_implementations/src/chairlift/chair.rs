@@ -1,6 +1,8 @@
+use serde::Serialize;
+
 use super::position::RopePosition;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 pub enum ChairState {
     NotActive,
     OnRope,
@@ -40,6 +42,19 @@ impl Chair {
         (current + self.start_position.rope_length_pulses() - start)
             % self.start_position.rope_length_pulses()
     }
+
+    /// Which physical zone of the loop this chair currently occupies, for display
+    /// purposes. Doesn't mutate `state`, so it never affects `is_active`/`activate`.
+    pub fn display_status(
+        &self,
+        rope_position: RopePosition,
+        config: &super::config::ChairliftConfig,
+    ) -> ChairState {
+        if !self.is_active() {
+            return ChairState::NotActive;
+        }
+        config.zone_at(self.position(rope_position))
+    }
 }
 
 #[cfg(test)]
@@ -53,6 +68,7 @@ mod tests {
             mountain_to_valley_pulses: 58_000,
             mountain_station_pulses: 2_900,
             valley_station_pulses: 2_900,
+            pulses_per_meter: 29,
         }
     }
 
@@ -102,5 +118,42 @@ mod tests {
         assert_eq!(chair.state, ChairState::OnRope);
         assert!(chair.is_active());
         assert_eq!(chair.start_position.pulses(), 5000);
+    }
+
+    #[test]
+    fn display_status_is_not_active_before_activation() {
+        let config = test_config();
+        let start = RopePosition::new(&config);
+        let chair = Chair::new(1, start);
+
+        assert_eq!(chair.display_status(start, &config), ChairState::NotActive);
+    }
+
+    #[test]
+    fn display_status_reflects_current_zone_once_active() {
+        let config = test_config();
+
+        let start = RopePosition::new(&config);
+        let mut chair = Chair::new(1, start);
+        chair.activate(start);
+
+        // Right after departure the chair is still within the valley station zone.
+        assert_eq!(
+            chair.display_status(start, &config),
+            ChairState::ValleyStation
+        );
+
+        // Out on the open rope, away from both stations.
+        let mut mid_rope = RopePosition::new(&config);
+        mid_rope.set_pulses(30_000);
+        assert_eq!(chair.display_status(mid_rope, &config), ChairState::OnRope);
+
+        // Arriving at the mountain station.
+        let mut mountain = RopePosition::new(&config);
+        mountain.set_pulses(config.valley_to_mountain_pulses);
+        assert_eq!(
+            chair.display_status(mountain, &config),
+            ChairState::MountainStation
+        );
     }
 }

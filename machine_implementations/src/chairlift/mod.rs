@@ -1,16 +1,18 @@
-use std::time::Instant;
+use std::{cell::RefCell, rc::Rc, time::Instant};
 
-use crate::{MachineApi, MachineMessage, QiTechMachine, VENDOR_QITECH};
-use qitech_lib::machines::{
-    Machine, MachineDataRegistry, MachineError, MachineIdentification,
-    MachineIdentificationUnique,
-};
+use control_core::socketio::namespace::NamespaceCacheingLogic;
+use qitech_lib::ethercat_hal::devices::wago_modules::wago_750_354::Wago750_354;
+use qitech_lib::machines::{MachineIdentification, MachineIdentificationUnique};
 use tokio::sync::mpsc::{Receiver, Sender};
 
-pub mod new;
-pub mod position;
+use crate::{MachineMessage, VENDOR_QITECH};
+
+pub mod act;
+pub mod api;
 pub mod chair;
 pub mod config;
+pub mod new;
+pub mod position;
 
 pub struct ChairliftMachine {
     pub machine_identification_unique: MachineIdentificationUnique,
@@ -18,7 +20,15 @@ pub struct ChairliftMachine {
     sender: Sender<MachineMessage>,
     receiver: Receiver<MachineMessage>,
 
-    last_update: Instant,
+    /// WAGO 750-354 bus coupler carrying the 750-430 DI module the encoder is wired to.
+    wago_750_354: Rc<RefCell<Wago750_354>>,
+    /// Last sampled encoder input value, used for software rising-edge detection.
+    last_encoder_input: bool,
+
+    namespace: api::ChairliftMachineNamespace,
+    last_state_emit: Instant,
+
+    config: config::ChairliftConfig,
     pub rope_position: position::RopePosition,
     pub chairs: Vec<chair::Chair>,
 }
@@ -75,49 +85,43 @@ impl ChairliftMachine {
     pub fn departure(&mut self) -> Option<u16> {
         self.activate_next_chair()
     }
-}
 
-impl Machine for ChairliftMachine {
-    fn act(
-        &mut self,
-        _registry: Option<&mut MachineDataRegistry>,
-    ) -> Result<(), MachineError> {
-        while let Ok(msg) = self.receiver.try_recv() {
-            self.act_machine_message(msg);
+    pub fn get_state(&self) -> api::StateEvent {
+        let pulses_per_meter = self.config.pulses_per_meter;
+
+        api::StateEvent {
+            rope_position_pulses: self.rope_position.pulses(),
+            rope_length_pulses: self.rope_position.rope_length_pulses(),
+            rope_position_meters: self.rope_position.meters(pulses_per_meter),
+            valley_to_mountain_pulses: self.config.valley_to_mountain_pulses,
+            mountain_to_valley_pulses: self.config.mountain_to_valley_pulses,
+            mountain_station_pulses: self.config.mountain_station_pulses,
+            valley_station_pulses: self.config.valley_station_pulses,
+            chairs: self
+                .chairs
+                .iter()
+                .map(|chair| {
+                    let position_pulses = if chair.is_active() {
+                        chair.position(self.rope_position)
+                    } else {
+                        0
+                    };
+                    api::ChairEvent {
+                        id: chair.id,
+                        status: chair.display_status(self.rope_position, &self.config),
+                        position_pulses,
+                        position_meters: position_pulses as f64 / pulses_per_meter as f64,
+                    }
+                })
+                .collect(),
         }
-
-        Ok(())
     }
 
-    fn react(&mut self, _registry: &MachineDataRegistry) {}
-
-    fn get_identification(&self) -> MachineIdentificationUnique {
-        self.machine_identification_unique
+    pub fn emit_state(&mut self) {
+        let event = self.get_state().build();
+        self.namespace.emit(api::ChairliftMachineEvents::State(event));
     }
 }
-
-impl MachineApi for ChairliftMachine {
-    fn act_machine_message(&mut self, _msg: MachineMessage) {}
-
-    fn get_api_sender(&self) -> Sender<MachineMessage> {
-        self.sender.clone()
-    }
-
-    fn api_mutate(
-        &mut self,
-        _value: serde_json::Value,
-    ) -> Result<(), anyhow::Error> {
-        Ok(())
-    }
-
-    fn api_event_namespace(
-        &mut self,
-    ) -> Option<control_core::socketio::namespace::Namespace> {
-        None
-    }
-}
-
-impl QiTechMachine for ChairliftMachine {}
 
 #[cfg(test)]
 mod tests {
