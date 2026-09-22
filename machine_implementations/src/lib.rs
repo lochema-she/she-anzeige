@@ -22,6 +22,7 @@ pub mod machine_identification;
 pub mod registry;
 pub mod rewinder;
 pub mod winder2;
+pub mod chairlift;
 
 pub const VENDOR_QITECH: u16 = 0x0001;
 pub const MACHINE_WINDER_V1: u16 = 0x0002;
