@@ -59,8 +59,8 @@ impl Chair {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use super::super::config::ChairliftConfig;
+    use super::*;
 
     fn test_config() -> ChairliftConfig {
         ChairliftConfig {

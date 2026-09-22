@@ -10,12 +10,7 @@ use super::config::ChairliftConfig;
 
 fn create_chairs(config: &ChairliftConfig) -> Vec<super::chair::Chair> {
     (1..=113)
-        .map(|id| {
-            super::chair::Chair::new(
-                id,
-                super::position::RopePosition::new(config),
-            )
-        })
+        .map(|id| super::chair::Chair::new(id, super::position::RopePosition::new(config)))
         .collect()
 }
 
@@ -77,10 +72,7 @@ mod tests {
         assert_eq!(chairs.last().unwrap().id, 113);
 
         for chair in &chairs {
-            assert_eq!(
-                chair.state,
-                super::super::chair::ChairState::NotActive
-            );
+            assert_eq!(chair.state, super::super::chair::ChairState::NotActive);
         }
     }
 }

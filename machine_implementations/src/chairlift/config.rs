@@ -61,8 +61,8 @@ impl Default for ChairliftConfig {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use super::super::chair::ChairState;
+    use super::*;
 
     #[test]
     fn zone_at_classifies_valley_station_around_wrap_point() {

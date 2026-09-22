@@ -119,7 +119,8 @@ impl ChairliftMachine {
 
     pub fn emit_state(&mut self) {
         let event = self.get_state().build();
-        self.namespace.emit(api::ChairliftMachineEvents::State(event));
+        self.namespace
+            .emit(api::ChairliftMachineEvents::State(event));
     }
 }
 
@@ -131,12 +132,7 @@ mod tests {
         let config = config::ChairliftConfig::default();
 
         (1..=113)
-            .map(|id| {
-                chair::Chair::new(
-                    id,
-                    position::RopePosition::new(&config),
-                )
-            })
+            .map(|id| chair::Chair::new(id, position::RopePosition::new(&config)))
             .collect()
     }
 
@@ -150,9 +146,7 @@ mod tests {
     #[test]
     fn activate_next_chair_activates_first_chair() {
         let mut chairs = test_chairs();
-        let position = position::RopePosition::new(
-            &config::ChairliftConfig::default(),
-        );
+        let position = position::RopePosition::new(&config::ChairliftConfig::default());
 
         let id = activate_next_chair(&mut chairs, position);
 

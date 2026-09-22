@@ -2,7 +2,9 @@ use std::time::{Duration, Instant};
 
 use qitech_lib::ethercat_hal::devices::wago_modules::wago_750_430::Wago750_430;
 use qitech_lib::ethercat_hal::io::digital_input::DigitalInputDevice;
-use qitech_lib::machines::{Machine, MachineDataRegistry, MachineError, MachineIdentificationUnique};
+use qitech_lib::machines::{
+    Machine, MachineDataRegistry, MachineError, MachineIdentificationUnique,
+};
 
 use crate::{MachineApi, QiTechMachine};
 
