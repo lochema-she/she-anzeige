@@ -1002,6 +1002,30 @@ export const wago750460Machine: MachineProperties = {
   ],
 };
 
+export const chairlift1: MachineProperties = {
+  name: "Chairlift",
+  version: "V1",
+  slug: "chairlift1",
+  icon: "lu:CableCar",
+  machine_identification: {
+    vendor: VENDOR_QITECH,
+    machine: 0x0050,
+  },
+  device_roles: [
+    {
+      role: 0,
+      role_label: "Wago 750-354 Bus Coupler",
+      allowed_devices: [
+        {
+          vendor_id: 0x21,
+          product_id: 0x07500354,
+          revision: 0x2,
+        },
+      ],
+    },
+  ],
+};
+
 export const bottlecapsTestMachine: MachineProperties = {
   machine_identification: {
     vendor: VENDOR_QITECH,
@@ -1065,6 +1089,7 @@ export const machineProperties: MachineProperties[] = [
   wagoSerial,
   wago750460Machine,
   bottlecapsTestMachine,
+  chairlift1,
 ];
 
 export const getMachineProperties = (

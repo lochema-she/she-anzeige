@@ -1,35 +1,60 @@
+use anyhow::{Error, Result};
+use qitech_lib::ethercat_hal::devices::EthercatDevice;
+use qitech_lib::ethercat_hal::devices::wago_modules::wago_750_354::Wago750_354;
+
 use crate::{MachineHardware, MachineNew};
 
-use tokio::sync::mpsc;
-
 use super::ChairliftMachine;
+use super::api::ChairliftMachineNamespace;
 use super::config::ChairliftConfig;
 
 fn create_chairs(config: &ChairliftConfig) -> Vec<super::chair::Chair> {
     (1..=113)
-        .map(|id| {
-            super::chair::Chair::new(
-                id,
-                super::position::RopePosition::new(config),
-            )
-        })
+        .map(|id| super::chair::Chair::new(id, super::position::RopePosition::new(config)))
         .collect()
 }
 
 impl MachineNew for ChairliftMachine {
-    fn new(hw: MachineHardware) -> Result<Self, anyhow::Error> {
-        let (sender, receiver) = mpsc::channel(16);
+    fn new(hw: MachineHardware) -> Result<Self, Error> {
+        // Role 0: WAGO 750-354 bus coupler carrying the 750-430 DI module.
+        let (wago_750_354, coupler_addr) =
+            hw.try_get_ethercat_device_and_addr_by_role::<Wago750_354>(0)?;
+
+        let interface = hw.ethercat_interface.clone().ok_or_else(|| {
+            anyhow::anyhow!("ChairliftMachine: no EtherCAT interface was supplied")
+        })?;
+
+        // Discover and initialize the coupler's attached I/O modules (the 750-430
+        // DI module the encoder is wired to) via SDO.
+        let modules = Wago750_354::initialize_modules(interface.clone(), coupler_addr)?;
+        {
+            let mut coupler = wago_750_354.borrow_mut();
+            for module in modules {
+                coupler.set_module(module);
+            }
+            coupler.init_slot_modules(interface, coupler_addr);
+        }
+
+        let (sender, receiver) = tokio::sync::mpsc::channel(16);
 
         let config = ChairliftConfig::default();
 
-        Ok(Self {
+        let mut machine = Self {
             machine_identification_unique: hw.identification,
             sender,
             receiver,
-            last_update: std::time::Instant::now(),
+            wago_750_354,
+            last_encoder_input: false,
+            namespace: ChairliftMachineNamespace { namespace: None },
+            last_state_emit: std::time::Instant::now(),
             rope_position: super::position::RopePosition::new(&config),
             chairs: create_chairs(&config),
-        })
+            config,
+        };
+
+        machine.emit_state();
+
+        Ok(machine)
     }
 }
 
@@ -47,10 +72,7 @@ mod tests {
         assert_eq!(chairs.last().unwrap().id, 113);
 
         for chair in &chairs {
-            assert_eq!(
-                chair.state,
-                super::super::chair::ChairState::NotActive
-            );
+            assert_eq!(chair.state, super::super::chair::ChairState::NotActive);
         }
     }
 }

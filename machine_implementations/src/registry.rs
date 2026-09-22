@@ -1,7 +1,7 @@
 use crate::extruder1::ExtruderV2;
 use crate::{
-    MachineHardware, MachineNew, QiTechMachine, aquapath1::AquaPathV1, dryer::DryerMachine,
-    laser::LaserMachine, rewinder::Rewinder, winder2::Winder2, chairlift::ChairliftMachine,
+    MachineHardware, MachineNew, QiTechMachine, aquapath1::AquaPathV1, chairlift::ChairliftMachine,
+    dryer::DryerMachine, laser::LaserMachine, rewinder::Rewinder, winder2::Winder2,
 };
 use anyhow::Error;
 use lazy_static::lazy_static;
