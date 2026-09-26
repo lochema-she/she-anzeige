@@ -33,6 +33,29 @@ impl MachineNew for ChairliftMachine {
                 coupler.set_module(module);
             }
             coupler.init_slot_modules(interface, coupler_addr);
+
+            // TEMPORARY: diagnose why encoder pulses don't reach the software
+            // even though the module's own input LED lights up. Remove once
+            // the encoder is confirmed working.
+            println!(
+                "[chairlift] coupler input_len={} bytes, output_len={} bytes, module_count={}, dev_count={}",
+                coupler.input_len(),
+                coupler.output_len(),
+                coupler.module_count,
+                coupler.dev_count,
+            );
+            for (i, slot) in coupler.slots.iter().enumerate() {
+                if let Some(module) = slot {
+                    println!(
+                        "[chairlift] slot {i}: name={} has_tx={} has_rx={} tx_offset={} rx_offset={}",
+                        module.name,
+                        module.has_tx,
+                        module.has_rx,
+                        module.tx_offset,
+                        module.rx_offset
+                    );
+                }
+            }
         }
 
         let (sender, receiver) = tokio::sync::mpsc::channel(16);

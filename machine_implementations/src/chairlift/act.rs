@@ -1,5 +1,7 @@
+use std::sync::atomic::{AtomicU32, Ordering};
 use std::time::{Duration, Instant};
 
+use qitech_lib::ethercat_hal::devices::EthercatDevice;
 use qitech_lib::ethercat_hal::devices::wago_modules::wago_750_430::Wago750_430;
 use qitech_lib::ethercat_hal::io::digital_input::DigitalInputDevice;
 use qitech_lib::machines::{
@@ -9,6 +11,10 @@ use qitech_lib::machines::{
 use crate::{MachineApi, QiTechMachine};
 
 use super::ChairliftMachine;
+
+// TEMPORARY: heartbeat counter for periodic raw-status debug prints below.
+// Remove together with the debug prints once the encoder is confirmed working.
+static POLL_COUNT: AtomicU32 = AtomicU32::new(0);
 
 impl ChairliftMachine {
     /// Port on the WAGO 750-430 the encoder's single pulse channel is wired to
@@ -24,6 +30,38 @@ impl ChairliftMachine {
             .and_then(|device| device.as_any().downcast_ref::<Wago750_430>())
             .and_then(|di| di.get_input(Self::ENCODER_PORT).ok())
             .unwrap_or(false)
+    }
+
+    /// TEMPORARY: dumps the coupler's reported input size and all 8 raw DI
+    /// ports, to see whether the software is receiving any input data at all
+    /// for this slave and whether the signal shows up on a different port
+    /// than expected. Remove once the encoder is confirmed working.
+    fn debug_dump_raw_state(&self) {
+        let coupler = self.wago_750_354.borrow();
+        let module = coupler
+            .slot_devices
+            .first()
+            .and_then(|slot| slot.as_ref())
+            .and_then(|device| device.as_any().downcast_ref::<Wago750_430>());
+
+        match module {
+            Some(di) => {
+                let ports: Vec<bool> = (0..di.get_port_count())
+                    .map(|p| di.get_input(p).unwrap_or(false))
+                    .collect();
+                println!(
+                    "[chairlift] heartbeat: coupler input_len={} bytes, DI ports={:?}",
+                    coupler.input_len(),
+                    ports
+                );
+            }
+            None => {
+                println!(
+                    "[chairlift] heartbeat: coupler input_len={} bytes, slot 0 is not a Wago750_430 (or empty)",
+                    coupler.input_len()
+                );
+            }
+        }
     }
 
     /// Samples the encoder's digital input and counts a rope pulse on every
@@ -44,6 +82,13 @@ impl ChairliftMachine {
             self.process_encoder_pulse();
         }
         self.last_encoder_input = current;
+
+        // TEMPORARY: print a full raw status snapshot roughly once a second
+        // (act() runs at the ~1kHz EtherCAT cycle), regardless of whether
+        // anything changed. Remove together with the above.
+        if POLL_COUNT.fetch_add(1, Ordering::Relaxed) % 1000 == 0 {
+            self.debug_dump_raw_state();
+        }
     }
 }
 
