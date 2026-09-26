@@ -31,6 +31,15 @@ impl ChairliftMachine {
     /// is always assumed to move forward.
     fn poll_encoder(&mut self) {
         let current = self.read_encoder_input();
+        // TEMPORARY: prints every time the sampled input changes, to check
+        // whether the software actually sees the physical signal toggle.
+        // Remove once the encoder wiring/mapping is confirmed working.
+        if current != self.last_encoder_input {
+            println!(
+                "[chairlift] encoder DI (Port1, index {}) changed to {current}",
+                Self::ENCODER_PORT
+            );
+        }
         if current && !self.last_encoder_input {
             self.process_encoder_pulse();
         }
