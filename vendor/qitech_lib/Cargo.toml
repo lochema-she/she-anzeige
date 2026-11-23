@@ -1,0 +1,26 @@
+[package]
+name = "qitech_lib"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+bitvec = "1.0.1"
+ethercat_hal = { path = "ethercat_hal" }
+ethercat_hal_derive = { path = "ethercat_hal_derive" }
+modbus = { path = "modbus"}
+machines = { path = "machines" }
+units = {path = "units"}
+common = {path = "common"}
+tokio = "1.49.0"
+
+
+[dev-dependencies]
+serde = { version = "1.0", features = ["derive"] }
+postcard = { version = "1.0", features = ["alloc"] }
+core_affinity = "0.8.3"
+
+[lib]
+
+[features]
+# This defines 'mock' at the root level and passes it to 'ethercat_hal'
+mock = ["ethercat_hal/mock"]
