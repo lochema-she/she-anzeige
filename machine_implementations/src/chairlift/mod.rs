@@ -5,7 +5,7 @@ use qitech_lib::ethercat_hal::devices::wago_modules::wago_750_354::Wago750_354;
 use qitech_lib::machines::{MachineIdentification, MachineIdentificationUnique};
 use tokio::sync::mpsc::{Receiver, Sender};
 
-use crate::{MachineMessage, VENDOR_QITECH};
+use crate::{MACHINE_CHAIRLIFT_V1, MachineMessage, VENDOR_QITECH};
 
 pub mod act;
 pub mod api;
@@ -49,7 +49,7 @@ fn activate_next_chair(
 impl ChairliftMachine {
     pub const MACHINE_IDENTIFICATION: MachineIdentification = MachineIdentification {
         vendor: VENDOR_QITECH,
-        machine: 0x0050,
+        machine: MACHINE_CHAIRLIFT_V1,
     };
 
     pub fn chair(&self, id: u16) -> Option<&chair::Chair> {

@@ -117,7 +117,11 @@ impl MachineIdentification {
             x if x == WAGO_8CH_IO_TEST_MACHINE => "wago_8ch_io_test_machine".to_string(),
             x if x == TEST_MACHINE_BOTTLECAPS => "bottlecaps_test_machine".to_string(),
             x if x == MACHINE_DRYER_V1 => "dryer_v1".to_string(),
-            _ => unreachable!("Unknown machine id {}", self.machine),
+            x if x == MACHINE_CHAIRLIFT_V1 => "chairlift_v1".to_string(),
+            // Not unreachable: a coupler with a blank EEPROM reports machine 0, and
+            // new machines may not be listed here yet. Panicking here crashed the
+            // GET /api/v2/machine request.
+            _ => format!("unknown_{:#06x}", self.machine),
         }
     }
 }
@@ -213,6 +217,7 @@ use crate::DIGITAL_INPUT_TEST_MACHINE;
 use crate::IP20_TEST_MACHINE;
 use crate::MACHINE_AQUAPATH_V1;
 use crate::MACHINE_BUFFER_V1;
+use crate::MACHINE_CHAIRLIFT_V1;
 use crate::MACHINE_DRYER_V1;
 use crate::MACHINE_EXTRUDER_V1;
 use crate::MACHINE_EXTRUDER_V2;
@@ -290,4 +295,28 @@ pub fn get_identification_addresses(
                                                             ))?
                                                         }*/
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn slug_of_chairlift() {
+        let id = MachineIdentification {
+            vendor: VENDOR_QITECH,
+            machine: MACHINE_CHAIRLIFT_V1,
+        };
+        assert_eq!(id.slug(), "chairlift_v1");
+    }
+
+    #[test]
+    fn slug_of_unknown_machine_does_not_panic() {
+        // A coupler with a blank EEPROM reports machine 0.
+        let id = MachineIdentification {
+            vendor: 0,
+            machine: 0,
+        };
+        assert_eq!(id.slug(), "unknown_0x0000");
+    }
 }
