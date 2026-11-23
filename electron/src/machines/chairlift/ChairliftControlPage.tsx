@@ -42,6 +42,12 @@ export function ChairliftControlPage() {
               </span>
             </span>
             <span>
+              Pulse:{" "}
+              <span className="font-mono">
+                {state ? state.rope_position_pulses : "–"}
+              </span>
+            </span>
+            <span>
               Sessel auf der Strecke:{" "}
               <span className="font-mono">{activeChairCount}</span>
             </span>
