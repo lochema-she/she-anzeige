@@ -438,7 +438,7 @@ fn try_bring_up_ethercat(
 
     let interface = find_ethercat_interface(state);
 
-    let eth_control = optimized_ethercat_init(&interface);
+    let mut eth_control = optimized_ethercat_init(&interface);
     if let Err(e) = state.set_ethercat_thread_channel(Some(eth_control.channel.clone())) {
         println!("Could not publish the ethercat thread channel: {:?}", e);
     }
@@ -462,7 +462,17 @@ fn try_bring_up_ethercat(
     detect_and_build_machines(state.clone(), main_state);
 
     // transition to OP and wait until all subdevices confirm OP.
-    finalize_ethercat(main_state, &eth_control).expect("finalize_ethercat failed");
+    if let Err(e) = finalize_ethercat(main_state, &eth_control) {
+        // Surface the state-machine thread's actual error instead of losing it.
+        if let Some(handle) = eth_control.join_handle.take() {
+            match handle.join() {
+                Ok(Err(inner)) => eprintln!("EtherCAT state machine error: {inner:?}"),
+                Ok(Ok(())) => eprintln!("EtherCAT state machine ended without an error"),
+                Err(_) => eprintln!("EtherCAT state machine thread panicked"),
+            }
+        }
+        panic!("finalize_ethercat failed: {e}");
+    }
 
     send_ecat_state(state.clone(), eth_control.app_handle.get_state().into());
     Some(eth_control)

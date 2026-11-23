@@ -4,7 +4,7 @@ members = [
     "control-core",
     "machine_implementations",
 ]
-exclude = []
+exclude = ["vendor/qitech_lib"]
 resolver = "2"
 
 [workspace.package]
@@ -27,3 +27,8 @@ style = { level = "warn", priority = -1 }
 pendantic = { level = "warn", priority = -1 }
 cargo = { level = "warn", priority = -1 }
 nursery = { level = "warn", priority = -1 }
+
+# Local fixes to qitech_lib (WAGO 750-430 input offset, 750-354 PDO mapping loop).
+# Remove once they are merged upstream.
+[patch."https://github.com/qitechgmbh/qitech_lib.git"]
+qitech_lib = { path = "vendor/qitech_lib" }
